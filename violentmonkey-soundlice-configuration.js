@@ -4,7 +4,7 @@
 // @match       *://www.soundslice.com/*
 // @grant       none
 // @version     1.0
-// @author      -
+// @author      rei.ichido
 // @description 4/10/2024, 9:46:19 AM
 // ==/UserScript==
 
