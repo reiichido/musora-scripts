@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name        SoundSlice automation
 // @namespace   Violentmonkey Scripts
-// @match       *://www.soundslice.com/*
+// @match       *://www.soundslice.com/slices/*
 // @grant       none
-// @version     1.0
-// @author      rei.ichido
-// @description 4/10/2024, 9:46:19 AM
+// @version     1.1
+// @author      -
+// @description 8/20/2025, 9:46:19 AM
 // ==/UserScript==
 
 var configJson = {
@@ -22,9 +22,9 @@ var configJson = {
       // 1- Before plaback
       // 2- During loops
       // 3- Always
-      option: 2,
+      option: 3,
       // 1-3
-      barCount: 3
+      barCount: 1
     },
   },
   speed: 100,
@@ -35,7 +35,7 @@ var configJson = {
   },
   useLoop: false,
 	settings: {
-    masterVolume: 50,
+    masterVolume: 70,
 		// -21 -> 60, default 0
 		zoomLevel: 0,
 		layout: {
@@ -51,7 +51,7 @@ var configJson = {
 				staveWidth: {
 					doModify: false,
 					doFitToScreen: false,
-					staveWidthValue: 25
+					value: 25
 				},
 				// if proportionalNotation true
 				// 20-80, default 50
@@ -88,11 +88,26 @@ var configJson = {
 			highlightBar: false
 		}
 	},
-  timeout: 300,
+  timeout: 500,
 	temp: 1
 };
 
-
+if(!window.location.pathname.includes("embed") || !configJson.doWaitMessage) {
+  configJson.speed = 60;
+  /*
+  configJson.hideVideo=true;
+  configJson.settings.masterVolume=50;
+  configJson.settings.zoomLevel=10;
+  configJson.settings.layout.scrollable.staveWidth.doModify = true;
+  configJson.settings.layout.scrollable.staveWidth.value = 149;
+  configJson.settings.transposition.note = 1;
+  configJson.metronome.countIn.enable=true;
+  configJson.metronome.enable=true;
+  configJson.metronome.volume=20;
+  configJson.video.useSynth = true;
+  */
+  processConfiguration();
+} else {
 if(configJson.doWaitMessage) {
   window.addEventListener('message', event => {
     if(event.data.custom) {
@@ -113,7 +128,9 @@ if(configJson.doWaitMessage) {
           configJson.metronome.volume=40;
           configJson.metronome.countIn.enable=true;
           break;
-        case "workouts":
+          case "challenge":
+          break;
+          case "workouts":
           break;
         case "packs":
           configJson.hideVideo=true;
@@ -128,14 +145,11 @@ if(configJson.doWaitMessage) {
       processConfiguration();
     }
   });
-} else {
-  processConfiguration();
-}
+}}
 
 function processConfiguration() {
   setTimeout(() => {
     hideVideo(configJson.hideVideo);
-    //setMasterVolume(configJson.masterVolume);
     setMetronome(configJson.metronome);
     setLoop(configJson.useLoop);
     setSpeed(configJson.speed);
@@ -168,23 +182,25 @@ function setMetronome(options) {
 }
 
 function setSpeed(speed, doObserve = true) {
-  document.getElementsByClassName("speedvalue")[0].dispatchEvent(getMouseDownEvent());
-  document.getElementsByClassName("speedinp")[0].value = speed;
-  document.getElementsByClassName("artist-info")[0].dispatchEvent(getMouseDownEvent());
-  if(doObserve) {
-    var observer = new MutationObserver(function (mutations) {
-      if(mutations.length === 1) {
-        setSpeed(speed, false);
-        observer.disconnect();
-      }
-    });
+  if(speed) {
+    document.getElementsByClassName("speedvalue")[0].dispatchEvent(getMouseDownEvent());
+    document.getElementsByClassName("speedinp")[0].value = speed;
+    document.getElementsByClassName("speedvalue")[0].dispatchEvent(getMouseDownEvent());
+    if(doObserve) {
+      var observer = new MutationObserver(function (mutations) {
+        if(mutations.length === 1) {
+          setSpeed(speed, false);
+          observer.disconnect();
+        }
+      });
 
-    let options = {
-      childList: true,
-      subtree: true
-    };
+      let options = {
+        childList: true,
+        subtree: true
+      };
 
-    observer.observe(document.getElementsByClassName("speedvaluetext")[0], options);
+      observer.observe(document.getElementsByClassName("speedvaluetext")[0], options);
+    }
   }
 }
 
@@ -340,3 +356,4 @@ function getPointerDownEvent() {
 function getMouseDownEvent() {
   return new MouseEvent("mousedown", {bubbles: true, cancellable: false});
 }
+
