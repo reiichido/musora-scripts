@@ -2,8 +2,9 @@
 // @name        SoundSlice automation
 // @namespace   Violentmonkey Scripts
 // @match       *://www.soundslice.com/slices/*
+// @match       *://www.soundslice.com/scores/*
 // @grant       none
-// @version     1.1
+// @version     1.2
 // @author      -
 // @description 8/20/2025, 9:46:19 AM
 // ==/UserScript==
@@ -88,12 +89,18 @@ var configJson = {
 			highlightBar: false
 		}
 	},
-  timeout: 500,
+  timeout: 700,
 	temp: 1
 };
 
 if(!window.location.pathname.includes("embed") || !configJson.doWaitMessage) {
+  configJson.video.useSynth = true;
   configJson.speed = 60;
+  configJson.metronome.countIn.enable=true;
+  configJson.video.useSynth = true;
+  configJson.timeout = 1000;
+  processConfiguration();
+
   /*
   configJson.hideVideo=true;
   configJson.settings.masterVolume=50;
@@ -104,9 +111,7 @@ if(!window.location.pathname.includes("embed") || !configJson.doWaitMessage) {
   configJson.metronome.countIn.enable=true;
   configJson.metronome.enable=true;
   configJson.metronome.volume=20;
-  configJson.video.useSynth = true;
   */
-  processConfiguration();
 } else {
 if(configJson.doWaitMessage) {
   window.addEventListener('message', event => {
@@ -152,8 +157,8 @@ function processConfiguration() {
     hideVideo(configJson.hideVideo);
     setMetronome(configJson.metronome);
     setLoop(configJson.useLoop);
-    setSpeed(configJson.speed);
     setVideo(configJson.video);
+    setSpeed(configJson.speed);
     setSettings(configJson.settings);
 
     // Does not work in FF
@@ -162,7 +167,7 @@ function processConfiguration() {
 }
 
 function hideVideo(option) {
-  if(option) {
+  if(option && document.getElementById("video-sidebar")) {
     document.getElementById("video-sidebar").style.cssText = "visibility:collapse";
   }
 }
@@ -238,8 +243,10 @@ function setFullScreen(ok = true) {
 function setSettings(config) {
   var settingsButton = document.getElementById("toggle-settings");
   settingsButton.dispatchEvent(getPointerDownEvent());
+  console.log("Setting settings")
 
   setTimeout(() => {
+    console.log("Timeout elapsed")
     handleInputValueChange("mainvol", config.masterVolume);
     handleInputValueChange("resizerange", config.zoomLevel);
 
@@ -247,9 +254,10 @@ function setSettings(config) {
     setSettingsTransposition(config.transposition);
     setSettingsPlayHeadStyle(config.playHeadStyle);
 
+    console.log("Setting settings end")
     settingsButton.dispatchEvent(getPointerDownEvent());
 
-  }, 300);
+  }, 1000);
 }
 
 function setLayout(options) {
