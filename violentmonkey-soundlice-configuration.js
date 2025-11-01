@@ -11,7 +11,7 @@
 
 var configJson = {
   doWaitMessage: true,
-  hideVideo: true,
+  hideVideo: false,
   metronome: {
     enable: false,
     volume: 20,
@@ -72,13 +72,21 @@ var configJson = {
 				pagePerSecond:"auto"
 			}
 		},
+    // Synth only
 		transposition: {
 			// -12 -> 12, default 0
 			note: 0,
-			// Synth only, default true
-			transposeAudioPlayback: true
+      // 1- Audio and notation (default)
+      // 2- Notation only
+      // 3- Audio only
+      transpositionPreference: 2
 		},
 		playHeadStyle: {
+      // 1- Only scroll when necessary
+      // 2- Keep playhead at top of screen (default)
+      // 3- Disable automatic scrolling
+      // 4- Keep playhead in middle of screen
+      scrollType: 2,
 			// 1-4, default 1
 			shape: 1,
 			// 1-4, default 1
@@ -87,31 +95,19 @@ var configJson = {
 			highlightNotes: true,
 			// deafult false
 			highlightBar: false
-		}
+		},
+    // 0 - 1000
+    audioLatency: 0
 	},
   timeout: 700,
 	temp: 1
 };
 
 if(!window.location.pathname.includes("embed") || !configJson.doWaitMessage) {
-  configJson.video.useSynth = true;
-  configJson.speed = 60;
   configJson.metronome.countIn.enable=true;
-  configJson.video.useSynth = true;
+  configJson.video.useSynth = false;
   configJson.timeout = 1000;
   processConfiguration();
-
-  /*
-  configJson.hideVideo=true;
-  configJson.settings.masterVolume=50;
-  configJson.settings.zoomLevel=10;
-  configJson.settings.layout.scrollable.staveWidth.doModify = true;
-  configJson.settings.layout.scrollable.staveWidth.value = 149;
-  configJson.settings.transposition.note = 1;
-  configJson.metronome.countIn.enable=true;
-  configJson.metronome.enable=true;
-  configJson.metronome.volume=20;
-  */
 } else {
 if(configJson.doWaitMessage) {
   window.addEventListener('message', event => {
@@ -121,14 +117,13 @@ if(configJson.doWaitMessage) {
       switch(event.data.caller.split("/")[4]) {
         case "songs":
           //configJson.hideVideo=false;
-          configJson.settings.masterVolume=70;
-          configJson.settings.zoomLevel=10;
-          configJson.metronome.enable=true;
+          configJson.settings.masterVolume=90;
+          configJson.metronome.enable=false;
           configJson.metronome.volume=40;
           configJson.metronome.countIn.enable=true;
           break;
         case "method":
-          configJson.settings.masterVolume=85;
+          configJson.settings.masterVolume=90;
           configJson.metronome.enable=true;
           configJson.metronome.volume=40;
           configJson.metronome.countIn.enable=true;
@@ -188,9 +183,9 @@ function setMetronome(options) {
 
 function setSpeed(speed, doObserve = true) {
   if(speed) {
-    document.getElementsByClassName("speedvalue")[0].dispatchEvent(getMouseDownEvent());
-    document.getElementsByClassName("speedinp")[0].value = speed;
-    document.getElementsByClassName("speedvalue")[0].dispatchEvent(getMouseDownEvent());
+    document.querySelector(".speedvalue").dispatchEvent(getMouseDownEvent());
+    document.querySelector(".speedinp").value = speed;
+    document.querySelector(".speedvalue").dispatchEvent(getMouseDownEvent());
     if(doObserve) {
       var observer = new MutationObserver(function (mutations) {
         if(mutations.length === 1) {
@@ -204,7 +199,9 @@ function setSpeed(speed, doObserve = true) {
         subtree: true
       };
 
-      observer.observe(document.getElementsByClassName("speedvaluetext")[0], options);
+      observer.observe(document.querySelector(".speedvaluetext"), options);
+    } else {
+      document.querySelector(".speedbut-plus").dispatchEvent(getMouseDownEvent());
     }
   }
 }
@@ -223,9 +220,7 @@ function setVideo(options) {
 }
 
 function setLoop(ok = true) {
-  console.log(ok);
   var loopButton = document.getElementsByClassName("loopbutton")[0];
-  console.log(loopButton);
   if((ok && !isButtonActive(loopButton)) || (!ok && isButtonActive(loopButton))) {
     loopButton.dispatchEvent(getPointerDownEvent());
   }
@@ -243,18 +238,16 @@ function setFullScreen(ok = true) {
 function setSettings(config) {
   var settingsButton = document.getElementById("toggle-settings");
   settingsButton.dispatchEvent(getPointerDownEvent());
-  console.log("Setting settings")
 
   setTimeout(() => {
-    console.log("Timeout elapsed")
     handleInputValueChange("mainvol", config.masterVolume);
     handleInputValueChange("resizerange", config.zoomLevel);
 
     setLayout(config.layout);
     setSettingsTransposition(config.transposition);
     setSettingsPlayHeadStyle(config.playHeadStyle);
+    setAudioLatency(config.audioLatency);
 
-    console.log("Setting settings end")
     settingsButton.dispatchEvent(getPointerDownEvent());
 
   }, 1000);
@@ -318,33 +311,38 @@ function setLayoutStaveWidth(options) {
     var staveWidthElement = document.getElementById("stavewidthrg");
     var value = options.value;
     if(options.doFitToScreen) {
-      value = staveWidthElement.max
+      value = staveWidthElement.max;
     }
-    handleInputValueChange("stavewidthrg", value)
+    handleInputValueChange("stavewidthrg", value);
   }
 }
 function setSettingsTransposition(options) {
   handleInputValueChange("transposeslider", options.note)
   if(document.getElementById("usesynth").classList.contains("toggle-active")) {
-    handleInputValueChange("transposeaudio", options.transposeAudioPlayback)
+    handleInputValueChange("transposepref", options.transpositionPreference);
   }
 }
 
 function setSettingsPlayHeadStyle(options) {
+  handleInputValueChange("scrolltype", options.scrollType);
   handleInputValueChange("playhead-shape", options.shape);
   handleInputValueChange("playhead-color", options.color);
   handleCheckBoxChange("highlight-notes", options.highlightNotes);
   handleCheckBoxChange("highlight-bar-option", options.highlightBar);
 }
 
+function setAudioLatency(options) {
+  handleInputValueChange("audio-latency-range", options, getInputEvent);
+}
+
 function isButtonActive(button) {
   return button.classList.contains("active");
 }
 
-function handleInputValueChange(elementId, value) {
+function handleInputValueChange(elementId, value, eventFunction = getChangeEvent) {
   var elt = document.getElementById(elementId);
   elt.value = value;
-  elt.dispatchEvent(getChangeEvent());
+  elt.dispatchEvent(eventFunction());
 }
 
 function handleCheckBoxChange(elementId, value) {
@@ -355,6 +353,10 @@ function handleCheckBoxChange(elementId, value) {
 
 function getChangeEvent() {
   return new Event("change", {bubbles: true, cancellable: false});
+}
+
+function getInputEvent() {
+  return new Event("input", {bubbles: true, cancellable: false});
 }
 
 function getPointerDownEvent() {
